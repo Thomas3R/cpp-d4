@@ -169,7 +169,6 @@ int test_tpss0d4mbd_rost61m1() {
   return test_numgrad(mol, charge, par);
 }
 
-
 int test_numgrad_dqdr(
   int n,
   const char atoms[][3],
@@ -252,7 +251,6 @@ int test_numgrad_dqdr(
 
   return EXIT_SUCCESS;
 }
-
 
 int test_grad() {
   int info{0};
