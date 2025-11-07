@@ -145,7 +145,6 @@ int ChargeModel::eeq_chrgeq(
     info = BLAS_SolveSymmetric(Amat, rhs);
     if (info != EXIT_SUCCESS) return info;
 
-
     // Extract solution
     for (int i = 0; i < m; i++) {
         vrhs(i) = rhs(i);
