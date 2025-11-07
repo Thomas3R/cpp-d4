@@ -272,16 +272,7 @@ inline int BLAS_SolveSymmetric(
 
     // Solve for all RHS columns
     info = LAPACKE_dsytrs(
-        LAPACK_ROW_MAJOR,
-        'L',
-        m,
-        nrhs,
-        A.p,
-        m,
-        ipiv,
-        B.p,
-        nrhs
-    );
+        LAPACK_ROW_MAJOR, 'L', m, nrhs, A.p, m, ipiv, B.p, nrhs);
     delete[] ipiv;
 
     if (info != 0) {
