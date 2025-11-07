@@ -71,7 +71,7 @@ int test_multi_functions(){
   TVector<double> q;
   TMatrix<double> dqdr;
   q.NewVector(mb16_43_01_n);
-  dqdr.NewMatrix(mb16_43_01_n, mb16_43_01_n);
+  dqdr.NewMatrix(3*mb16_43_01_n, mb16_43_01_n);
 
   eeqbc_model.get_cn(mol, realIdx, dist, cn, dcndr, false);
   info = eeqbc_model.eeq_chrgeq(mol, realIdx, dist, cn, dcndr, mb16_43_01_charge, q, dqdr, false, false);

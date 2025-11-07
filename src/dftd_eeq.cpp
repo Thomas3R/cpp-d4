@@ -121,17 +121,36 @@ int ChargeModel::eeq_chrgeq(
   TVector<double> vrhs;
   vrhs.NewVec(m);
 
+  // Need inverse for dqdr
   TMatrix<double> Ainv;
-  Ainv.NewMat(m, m);
-  Ainv.CopyMat(Amat);
+  if (lgrad) {
+    Ainv.NewMat(m, m);
+    Ainv.CopyMat(Amat);
 
-  // solve: A Q = X (Eq.4) -> Q = Ainv X
-  info = BLAS_InvertMatrix(Ainv);
-  if (info != EXIT_SUCCESS) return info;
+    // solve: A Q = X
+    info = BLAS_InvertMatrix(Ainv);
+    if (info != EXIT_SUCCESS) return info;
 
-  // no return in ORCA
-  BLAS_Add_Mat_x_Vec(vrhs, Ainv, xvec, false, 1.0);
-  // if (info != EXIT_SUCCESS) return info;
+    // no return in ORCA
+    BLAS_Add_Mat_x_Vec(vrhs, Ainv, xvec, false, 1.0);
+    // if (info != EXIT_SUCCESS) return info;
+  } else {
+    // direct solve: A Q = X
+    TVector<double> rhs;
+    rhs.NewVec(m);
+    rhs.CopyVec(xvec);
+
+    // Now solve (A * q = x) for symmetric Amat
+    // Note that only lower triangle of Amat is updated
+    info = BLAS_SolveSymmetric(Amat, rhs);
+    if (info != EXIT_SUCCESS) return info;
+
+
+    // Extract solution
+    for (int i = 0; i < m; i++) {
+        vrhs(i) = rhs(i);
+    }
+  }
 
   // remove charge constraint (make vector smaller by one) and total charge
   qtotal = 0.0;
@@ -212,10 +231,10 @@ int ChargeModel::eeq_chrgeq(
     // if (info != EXIT_SUCCESS) return info;
 
     dAmat.DelMat();
+    Ainv.DelMat();
   }
 
   // free all memory
-  Ainv.DelMat();
   Amat.DelMat();
   xvec.DelVec();
 
