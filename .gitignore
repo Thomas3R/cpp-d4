@@ -40,3 +40,4 @@
 /scripts/old/*
 /scripts/*.h
 /scripts/*.cpp
+_codeql_detected_source_root
