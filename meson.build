@@ -68,7 +68,7 @@ endif
 
 
 deps = []
-foreach lib: ['blas', 'lapacke']
+foreach lib: ['cblas', 'lapacke']
   this_dep = dependency(lib, required: false)
   if not this_dep.found()
     this_dep = cxx.find_library(lib)

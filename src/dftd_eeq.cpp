@@ -307,7 +307,6 @@ int EEQModel::get_vrhs(
         dxvecdr(ii, 3*jj+2) = dxdcn(ii) * dcndr(ii, 3 * jj + 2); 
       }
     }
-    dxdcn(nat) = 0.0;
   } else {
     for (int i = 0, ii = 0; i != mol.NAtoms; i++) {
       ii = realIdx(i);
@@ -615,7 +614,7 @@ int EEQBCModel::get_damat_0d(
       dradcn_j = - rad[jzp] * kcnrad * norm_cn;
       gam = 1.0 / (pow(radi,2) + pow(radj,2));
       for (int c = 0; c < 3; c++) {
-        vec(c) = mol.CC(jj, c) - mol.CC(ii, c);
+        vec(c) = mol.CC(j, c) - mol.CC(i, c);
         // Coulomb interaction of Gaussian charges
         for (int k = 0, kk = 0; k < mol.NAtoms; k++) {
           kk = realIdx(k);
@@ -801,7 +800,7 @@ int EEQBCModel::get_cmat(
   double dist_ij; // distance between atoms i and j
   const int n_atoms = realIdx.Max() + 1;
   cmat.NewMatrix(n_atoms + 1, n_atoms + 1);
-  for (int i = 0, ii = 0; i < n_atoms; i++)
+  for (int i = 0, ii = 0; i < mol.NAtoms; i++)
   {
     ii = realIdx(i);
     if (ii < 0) continue;
@@ -853,7 +852,7 @@ int EEQBCModel::get_dcmatdr(
       if (jj < 0) continue;
       jat = mol.ATNO(j);
       for (int c = 0; c < 3; c++) {
-        vec(c) = mol.CC(jj, c) - mol.CC(ii, c);
+        vec(c) = mol.CC(j, c) - mol.CC(i, c);
       }
       dist_ij = dist(ii,jj);
       get_dcpair(iat, jat, vec, dist_ij, dcdr_ij);
