@@ -151,8 +151,10 @@ int ChargeModel::eeq_chrgeq(
     if (info != EXIT_SUCCESS) return info;
 
     // Extract the solution
-    for (int i = 0; i < m; i++) {
-        vrhs(i) = rhs(i);
+    for (int i = 0, ii = 0; i < mol.NAtoms; i++) {
+        ii = realIdx(i);
+        if (ii < 0) continue;
+        vrhs(ii) = rhs(ii);
     }
   }
 
@@ -175,7 +177,7 @@ int ChargeModel::eeq_chrgeq(
 
   if (lverbose) {
     printf("    #   sym             EN              q            Aii\n");
-    for (int i = 0, ii = 0; i != n; i++) {
+    for (int i = 0, ii = 0; i != mol.NAtoms; i++) {
       ii = realIdx(i);
       if (ii < 0) continue;
       printf(
@@ -241,16 +243,16 @@ int ChargeModel::eeq_chrgeq(
     dAmat.DelMat();
     Ainv.DelMat();
     A.DelMat();
+    dqlocdr.DelMat();
+    dxvecdr.DelMat();
+    dcmatdr.DelMat();
   }
 
   // free all memory
   Amat.DelMat();
   xvec.DelVec();
-  dxvecdr.DelMat();
   qloc.DelVec();
-  dqlocdr.DelMat();
   cmat.DelMat();
-  dcmatdr.DelMat();
   vrhs.DelVec();
 
   return EXIT_SUCCESS;
@@ -801,7 +803,7 @@ int EEQBCModel::get_cmat(
   double dist_ij; // distance between atoms i and j
   const int n_atoms = realIdx.Max() + 1;
   cmat.NewMatrix(n_atoms + 1, n_atoms + 1);
-  for (int i = 0, ii = 0; i < n_atoms; i++)
+  for (int i = 0, ii = 0; i < mol.NAtoms; i++)
   {
     ii = realIdx(i);
     if (ii < 0) continue;
@@ -904,11 +906,15 @@ int EEQBCModel::get_xvec(
   
   xvec.NewVector(n_atoms + 1);
   xvec(n_atoms) = charge;
-  for (int i = 0; i < n_atoms; i++)
+  for (int i = 0, ii = 0; i < mol.NAtoms; i++)
   {
-    for (int j = 0; j < n_atoms; j++)
+    ii = realIdx(i);
+    if (ii < 0) continue;
+    for (int j = 0, jj = 0; j < mol.NAtoms; j++)
     {
-      xvec(i) = xvec(i) + cmat(i, j) * x_tmp(j);
+      jj = realIdx(j);
+      if (jj < 0) continue;
+      xvec(ii) = xvec(ii) + cmat(ii, jj) * x_tmp(jj);
     }
   }
 
@@ -1043,7 +1049,7 @@ int EEQBCModel::num_grad_dqdr(
     if (ii < 0) continue;
     for (int c = 0; c < 3; c++) {
       // calculate forward point
-      mol.CC(i, c) += step;
+      mol.CC(ii, c) += step;
       dist.NewMatrix(nat, nat);
       calc_distances(mol, realIdx, dist);
       eeqbc_model.get_cn(mol, realIdx, dist, cn, dcndr, false);
@@ -1051,7 +1057,7 @@ int EEQBCModel::num_grad_dqdr(
       eeqbc_model.eeq_chrgeq(mol, realIdx, dist, cn, dcndr, charge, q_r, dqdr, false, false);
 
       // calculate backward point
-      mol.CC(i, c) = mol.CC(i, c) - 2 * step;
+      mol.CC(ii, c) = mol.CC(ii, c) - 2 * step;
       dist.NewMatrix(nat, nat);
       calc_distances(mol, realIdx, dist);
       eeqbc_model.get_cn(mol, realIdx, dist, cn, dcndr, false);
@@ -1059,9 +1065,11 @@ int EEQBCModel::num_grad_dqdr(
       eeqbc_model.eeq_chrgeq(mol, realIdx, dist, cn, dcndr, charge, q_l, dqdr, false, false);
 
       // calculate numerical gradient as finite difference
-      mol.CC(i, c) = mol.CC(i, c) + step;
-      for (int j = 0, jj = 0; j < nat; j++) {
-        num_dqdr(3 * ii + c, j) = 0.5 * (q_r(j) - q_l(j)) / step;
+      mol.CC(ii, c) = mol.CC(ii, c) + step;
+      for (int j = 0, jj = 0; j < mol.NAtoms; j++) {
+        jj = realIdx(j);
+        if (ii < 0) continue;
+        num_dqdr(3 * ii + c, jj) = 0.5 * (q_r(jj) - q_l(jj)) / step;
 
       }
     }
