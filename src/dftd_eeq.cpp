@@ -240,13 +240,18 @@ int ChargeModel::eeq_chrgeq(
 
     dAmat.DelMat();
     Ainv.DelMat();
+    A.DelMat();
   }
 
   // free all memory
   Amat.DelMat();
   xvec.DelVec();
   dxvecdr.DelMat();
+  qloc.DelVec();
   dqlocdr.DelMat();
+  cmat.DelMat();
+  dcmatdr.DelMat();
+  vrhs.DelVec();
 
   return EXIT_SUCCESS;
 }
