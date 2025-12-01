@@ -955,7 +955,7 @@ int EEQBCModel::get_xvec_derivs(
   // get local charge
   bool lgrad = true; // calculate dqlocdr
   info = get_qloc(mol, realIdx, dist, charge, qloc, dqlocdr, lgrad);
-
+  if (info != EXIT_SUCCESS) return info;
   for (int i=0, ii = 0; i < mol.NAtoms; i++)
   {
     ii = realIdx(i);
