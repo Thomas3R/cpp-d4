@@ -123,7 +123,7 @@ int test_eeqbc_amalgam(){
 
   eeqbc_model.get_cn(mol, realIdx, dist, cn, dcndr, true);
 
-  info = eeqbc_model.eeq_chrgeq(mol, realIdx, dist, cn, dcndr, mb16_43_01_charge, q, dqdr, false, false);
+  info = eeqbc_model.eeq_chrgeq(mol, realIdx, dist, cn, dcndr, amalgam_charge, q, dqdr, false, false);
   if (info != EXIT_SUCCESS) {
      printf("Multicharge: Failed to calculate charges.");
      fflush(stdout);
