@@ -950,6 +950,7 @@ int EEQBCModel::get_xvec_derivs(
 
   // calculate derivative of the capacitance
   info = get_dcmatdr(mol, realIdx, dist, dcmatdr);
+  if (info != EXIT_SUCCESS) return info;
 
   // get local charge
   bool lgrad = true; // calculate dqlocdr
