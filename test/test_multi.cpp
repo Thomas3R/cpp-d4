@@ -133,7 +133,7 @@ int test_eeqbc_amalgam(){
   // Check against multicharge reference calculation
   for (int i=0; i < mol.NAtoms; i++) {
     if (check(q(i), qvec_amalgam_reference[i], 1.0E-8) == EXIT_FAILURE) {
-        print_fail("Multicharge: Functions, Partial charge differs from reference for amalgam.", q(i), qvec_reference[i]);
+        print_fail("Multicharge: Functions, Partial charge differs from reference for amalgam.", q(i), qvec_amalgam_reference[i]);
         return EXIT_FAILURE;
     }
   }
