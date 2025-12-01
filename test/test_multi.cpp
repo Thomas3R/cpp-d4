@@ -155,6 +155,7 @@ int test_multi(){
 
   // Test amalgam structure
   info = test_eeqbc_amalgam();
+  if (info != EXIT_SUCCESS) return info;
 
   return EXIT_SUCCESS;
 }
