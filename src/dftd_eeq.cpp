@@ -758,7 +758,7 @@ int EEQBCModel::get_cpair(
   return EXIT_SUCCESS;
 }
 
-// Get deerivative of the capacitance for bond between atoms i and j for EEQ-BC 
+// Get derivative of the capacitance for bond between atoms i and j for EEQ-BC 
 int EEQBCModel::get_dcpair(
   int iat,  // atom type of i
   int jat,  // atom type of j
