@@ -1067,7 +1067,7 @@ int EEQBCModel::num_grad_dqdr(
       mol.CC(ii, c) = mol.CC(ii, c) + step;
       for (int j = 0, jj = 0; j < mol.NAtoms; j++) {
         jj = realIdx(j);
-        if (ii < 0) continue;
+        if (jj < 0) continue;
         num_dqdr(3 * ii + c, jj) = 0.5 * (q_r(jj) - q_l(jj)) / step;
 
       }
