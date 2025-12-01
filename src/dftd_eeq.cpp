@@ -859,7 +859,7 @@ int EEQBCModel::get_dcmatdr(
       dist_ij = dist(ii,jj);
       get_dcpair(iat, jat, vec, dist_ij, dcdr_ij);
       for (int c = 0; c < 3; c++) {
-      // Calulate Off-diagonal elements; bond capacitances
+      // Calculate Off-diagonal elements; bond capacitances
       dcmatdr(3*ii+c,   jj) = - dcdr_ij(c);
       dcmatdr(3*jj+c,   ii) = + dcdr_ij(c);
       // Calculate diagonal elements; self-capacitance as the negative sum of bond capacitances
