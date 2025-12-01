@@ -948,7 +948,6 @@ int EEQBCModel::get_xvec_derivs(
   cmat_tmp.NewMat(n_atoms, n_atoms);
   int i_atno;  // atomic number of atom i
 
-  // 
   // calculate derivative of the capacitance
   info = get_dcmatdr(mol, realIdx, dist, dcmatdr);
 
