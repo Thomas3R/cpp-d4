@@ -155,6 +155,14 @@ int CalcEEQCharges(TRMatrix &XYZ, TIVector &ATNO, int NAtoms, int totalcharge, T
                    bool printerror=true, bool allowallatoms=false);
 
 /* --------------------------------------------------------------------------------------
+// Calculates the EEQ-BC charges according to the paper
+// https://doi.org/10.1063/5.0268978
+// Thomas Rose, 14/10/2025
+ -------------------------------------------------------------------------------------- */
+int CalcEEQBCCharges(TRMatrix &XYZ, TIVector &ATNO, int NAtoms, int totalcharge, TRVector &q
+                   , bool printerror=true, bool allowalaltoms=false);
+
+/* --------------------------------------------------------------------------------------
 // Calculates the coordination number and the EEQ charges as done in the D4 paper
 // https://doi.org/10.1063/1.5090222
 // Miquel Garcia-Ratés, 03/2024
@@ -235,6 +243,50 @@ int CalcEEQCharges(TRMatrix &XYZ, TIVector &ATNO, int NAtoms,
       }
     }
   }
+
+  dftd4::calc_distances(molecule, Index, dist);
+
+  TRMatrix dqdr;
+
+  return chrg_model.get_charges(molecule, Index, dist, totalcharge, 25, q, dqdr, false);
+}
+
+/* --------------------------------------------------------------------------------------
+// Calculates the EEQ-BC charges according to the paper
+// https://doi.org/10.1063/5.0268978
+// Thomas Rose, 14/10/2025
+ -------------------------------------------------------------------------------------- */
+int CalcEEQBCCharges(TRMatrix &XYZ, TIVector &ATNO, int NAtoms,
+                   int totalcharge, TRVector &q,
+                   bool printerror, bool allowalaltoms){
+
+  // initialize the charges to zero
+  q.Init();
+
+  TGeomInput molecule;
+  molecule.NAtoms=NAtoms;
+  molecule.CC.CopyMat(XYZ);
+  molecule.ATNO.CopyVec(ATNO);
+  TIVector Index(NAtoms);
+  for (int i=0;i<NAtoms;i++) Index(i)=i;
+  TRMatrix dist;
+  dist.NewMatrix(NAtoms, NAtoms);
+  multicharge::EEQBCModel chrg_model;
+  // check atomic numbers to guarantee we have all parameters
+  // ghost atoms (ATNO=0) will have no charge
+  for (int i=0;i<NAtoms;i++){
+    if (molecule.ATNO(i)>86){
+      if (!allowalaltoms){
+        if (printerror) printMessage("Atomic number %d detected. EEQ charges can not be calculated.\n",ATNO(i));
+        return 1;
+      }
+      // reduce to the previous row
+      else{
+        molecule.ATNO(i) -= 32;
+      }
+    }
+  }
+
 
   dftd4::calc_distances(molecule, Index, dist);
 

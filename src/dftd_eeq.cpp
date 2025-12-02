@@ -54,7 +54,7 @@ int ChargeModel::get_charges(
   bool lgrad
 ) {
   TIVector realIdx;
-  initializeRealIdx(mol.NAtoms, realIdx);
+  dftd4::initializeRealIdx(mol.NAtoms, realIdx);
 
   return get_charges(mol, realIdx, dist, charge, cutoff, q, dqdr, lgrad);
 };
@@ -1050,7 +1050,7 @@ int EEQBCModel::num_grad_dqdr(
       // calculate forward point
       mol.CC(ii, c) += step;
       dist.NewMatrix(nat, nat);
-      calc_distances(mol, realIdx, dist);
+      dftd4::calc_distances(mol, realIdx, dist);
       eeqbc_model.get_cn(mol, realIdx, dist, cn, dcndr, false);
       q_r.NewVec(nat);
       eeqbc_model.eeq_chrgeq(mol, realIdx, dist, cn, dcndr, charge, q_r, dqdr, false, false);
@@ -1058,7 +1058,7 @@ int EEQBCModel::num_grad_dqdr(
       // calculate backward point
       mol.CC(ii, c) = mol.CC(ii, c) - 2 * step;
       dist.NewMatrix(nat, nat);
-      calc_distances(mol, realIdx, dist);
+      dftd4::calc_distances(mol, realIdx, dist);
       eeqbc_model.get_cn(mol, realIdx, dist, cn, dcndr, false);
       q_l.NewVec(nat);
       eeqbc_model.eeq_chrgeq(mol, realIdx, dist, cn, dcndr, charge, q_l, dqdr, false, false);
