@@ -258,7 +258,7 @@ int CalcEEQCharges(TRMatrix &XYZ, TIVector &ATNO, int NAtoms,
  -------------------------------------------------------------------------------------- */
 int CalcEEQBCCharges(TRMatrix &XYZ, TIVector &ATNO, int NAtoms,
                    int totalcharge, TRVector &q,
-                   bool printerror, bool allowalaltoms){
+                   bool printerror, bool allowallatoms){
 
   // initialize the charges to zero
   q.Init();
@@ -275,9 +275,9 @@ int CalcEEQBCCharges(TRMatrix &XYZ, TIVector &ATNO, int NAtoms,
   // check atomic numbers to guarantee we have all parameters
   // ghost atoms (ATNO=0) will have no charge
   for (int i=0;i<NAtoms;i++){
-    if (molecule.ATNO(i)>86){
-      if (!allowalaltoms){
-        if (printerror) printMessage("Atomic number %d detected. EEQ charges can not be calculated.\n",ATNO(i));
+    if (molecule.ATNO(i)>103){
+      if (!allowallatoms){
+        if (printerror) printMessage("Atomic number %d detected. EEQ-BC charges can not be calculated.\n",ATNO(i));
         return 1;
       }
       // reduce to the previous row

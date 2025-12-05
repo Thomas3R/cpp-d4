@@ -137,7 +137,7 @@ public:
   * @param dcndr      Derivative of the coordination number w.r.t. atom positions
   * @param xvec       Output vector representing the effective driving term for the
   *                   EEQ system (size: number of atoms).
-  * @param dxvecdr      Output vector of derivatives of xvec w.r.t. atom positions.
+  * @param dxvecdr    Output vector of derivatives of xvec w.r.t. atom positions.
   *                   Only filled if `lgrad` is true.
   * @param qloc       Local charge (EEQ-BC specific).
   * @param dqlocdr    Derivative of the local charge (EEQ-BC specific).
@@ -156,7 +156,7 @@ public:
     const TMatrix<double> &dcndr,
     TVector<double> &xvec,
     TMatrix<double> &dxvecdr,
-    TVector<double>& qloc,
+    TVector<double> &qloc,
     TMatrix<double> &dqlocdr,
     TMatrix<double> &cmat,
     TMatrix<double> &dcmatdr,
@@ -199,7 +199,7 @@ public:
   * @param dist    Interatomic distance matrix.
   * @param q       Atomic charges computed from the EEQ model.
   * @param Amat    Output coulomb matrix.
-  * @param dAmat   Output derivative matrix with respect to Cartesian coordinates.
+  * @param dAmatdr   Output derivative matrix with respect to Cartesian coordinates.
   * @param atrace  Output trace contributions for the derivative.
   * @param cn         Coordination numbers for each atom.
   * @param dcndr      Derivative of the coordination number w.r.t. atom positions
@@ -216,7 +216,7 @@ public:
     const TMatrix<double> &dist,
     const TVector<double> &q,
     const TMatrix<double> &Amat,
-    TMatrix<double> &dAmat,
+    TMatrix<double> &dAmatdr,
     TMatrix<double> &atrace,
     const TVector<double> &cn,
     const TMatrix<double> &dcndr,
@@ -302,7 +302,7 @@ class EEQModel : public ChargeModel {
       const TMatrix<double> &dist,
       const TVector<double> &q,
       const TMatrix<double> &Amat,
-      TMatrix<double> &dAmat,
+      TMatrix<double> &dAmatdr,
       TMatrix<double> &atrace,
       const TVector<double> &cn,
       const TMatrix<double> &dcndr,
@@ -366,7 +366,7 @@ class EEQBCModel : public ChargeModel {
       const TMatrix<double> &dcndr,
       TVector<double> &xvec,
       TMatrix<double> &dxvecdr,
-      TVector<double>& qloc,
+      TVector<double> &qloc,
       TMatrix<double> &dqlocdr,
       TMatrix<double> &cmat,
       TMatrix<double> &dcmatdr,
@@ -391,7 +391,7 @@ class EEQBCModel : public ChargeModel {
       const TMatrix<double> &dist,
       const TVector<double> &q,
       const TMatrix<double> &Amat,
-      TMatrix<double> &dAmat,
+      TMatrix<double> &dAmatdr,
       TMatrix<double> &atrace,
       const TVector<double> &cn,
       const TMatrix<double> &dcndr,
@@ -413,12 +413,12 @@ class EEQBCModel : public ChargeModel {
 
     // Get purely geometry-dependent local charges
     int get_qloc(
-      const TMolecule& mol,
-      const TIVector & realIdx,
+      const TMolecule &mol,
+      const TIVector &realIdx,
       const TMatrix<double>& dist,
       const double q_tot,
-      TVector<double>& qloc,
-      TMatrix<double>& dqlocdr,
+      TVector<double> &qloc,
+      TMatrix<double> &dqlocdr,
       bool lgrad
     );
 
@@ -432,11 +432,11 @@ class EEQBCModel : public ChargeModel {
 
     // Get the capacitance for bond between atoms i and j
     int get_dcpair(
-      int iat,
-      int jat,
-      TVector<double> &vec,
-      double &dist_ij,
-      TVector<double> &dcdr_ij
+      double dist_ij,  // distance between atom j to atom i
+      double rvdw_ijat,  // pairwise van der Waals radii for ij atom types
+      double cap_ij,  // product of bond capacitances for atom types of i and j
+      TVector<double> &vec, // Vector from j to i
+      TVector<double> &dcdr_ij  // Out: Capacitance for bond ij
     ) const;
 
     // Get the capacitance matrix
@@ -449,46 +449,38 @@ class EEQBCModel : public ChargeModel {
 
     // Get the capacitance matrix
     int get_dcmatdr(
-      const TMolecule& mol,
+      const TMolecule &mol,
       const TIVector &realIdx,
-      const TMatrix<double>& dist,
-      TMatrix<double>& cmat
+      const TMatrix<double> &dist,
+      TMatrix<double> &cmat
     );
 
     // Get the right-hand side (electronegativity) of the set of linear equations
     int get_xvec(
-      const TMolecule& mol,
-      const TIVector& realIdx,
-      const TMatrix<double>& dist,
+      const TMolecule &mol,
+      const TIVector &realIdx,
+      const TMatrix<double> &dist,
       const TVector<double> &cn,
-      TMatrix<double>& cmat,
+      TMatrix<double> &cmat,
       int charge,
       TVector<double> &qloc,
-      TVector<double>& xvec
+      TVector<double> &xvec
     );
 
     // Get the derivative of the right-hand side of the set of linear equations
     int get_xvec_derivs(
-      const TMolecule& mol,
-      const TIVector& realIdx,
-      const TMatrix<double>& dist,
+      const TMolecule &mol,
+      const TIVector &realIdx,
+      const TMatrix<double> &dist,
       const TVector<double> &cn,
       const TMatrix<double> &dcndr,
-      TMatrix<double>& cmat,
+      TMatrix<double> &cmat,
       int charge,
-      TVector<double>& xvec,
+      TVector<double> &xvec,
       TMatrix<double> &dxvecdr,
-      TVector<double>& qloc,
-      TMatrix<double>& dqlocdr,
+      TVector<double> &qloc,
+      TMatrix<double> &dqlocdr,
       TMatrix<double> &dcmatdr
-    );
-
-    // numerical gradient of partial charges w.r.t. atom positions
-    int num_grad_dqdr(
-      TMolecule&,  // molecular geometry
-      const TIVector&,
-      int,
-      TMatrix<double>& // numerical gradient
     );
 
 };

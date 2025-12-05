@@ -193,13 +193,13 @@ int ChargeModel::eeq_chrgeq(
 
   // Gradient (note that the corresponding gradient flag in Fortran is `cpq`)
   if (lgrad) {
-    TMatrix<double> dAmat;
-    dAmat.NewMat(3 * n, m);
+    TMatrix<double> dAmatdr;
+    dAmatdr.NewMat(3 * n, m);
     TMatrix<double> atrace;
     atrace.NewMat(m, 3);
 
-    // Calculate the derivative of the Coulomb matrix w.r.t. atom positions (dAmat)
-    info = get_damat_0d(mol, realIdx, dist, vrhs, Amat, dAmat, atrace,
+    // Calculate the derivative of the Coulomb matrix w.r.t. atom positions (dAmatdr)
+    info = get_damat_0d(mol, realIdx, dist, vrhs, Amat, dAmatdr, atrace,
        cn, dcndr, qloc, dqlocdr, cmat, dcmatdr);
     if (info != EXIT_SUCCESS) return info;
 
@@ -207,9 +207,9 @@ int ChargeModel::eeq_chrgeq(
       ii = realIdx(i);
       if (ii < 0) continue;
 
-      dAmat(3 * ii, ii) += atrace(ii, 0);
-      dAmat(3 * ii + 1, ii) += atrace(ii, 1);
-      dAmat(3 * ii + 2, ii) += atrace(ii, 2);
+      dAmatdr(3 * ii, ii) += atrace(ii, 0);
+      dAmatdr(3 * ii + 1, ii) += atrace(ii, 1);
+      dAmatdr(3 * ii + 2, ii) += atrace(ii, 2);
 
       for (int j = 0, jj = 0; j != mol.NAtoms; j++) {
         jj = realIdx(j);
@@ -217,9 +217,9 @@ int ChargeModel::eeq_chrgeq(
 
         // dxvecdr = del C/del R * X + del X / del R * C 
         // CN contribution
-        dAmat(3 * jj,     ii) -= dxvecdr(ii, 3 * jj    );
-        dAmat(3 * jj + 1, ii) -= dxvecdr(ii, 3 * jj + 1);
-        dAmat(3 * jj + 2, ii) -= dxvecdr(ii, 3 * jj + 2);
+        dAmatdr(3 * jj,     ii) -= dxvecdr(ii, 3 * jj    );
+        dAmatdr(3 * jj + 1, ii) -= dxvecdr(ii, 3 * jj + 1);
+        dAmatdr(3 * jj + 2, ii) -= dxvecdr(ii, 3 * jj + 2);
       }
     }
 
@@ -237,10 +237,10 @@ int ChargeModel::eeq_chrgeq(
 
     // Calculate the charge gradient w.r.t. atom positions (dqdr)
     // no return in ORCA
-    BLAS_Add_Mat_x_Mat(dqdr, dAmat, A, false, false, -1.0);
+    BLAS_Add_Mat_x_Mat(dqdr, dAmatdr, A, false, false, -1.0);
     // if (info != EXIT_SUCCESS) return info;
 
-    dAmat.DelMat();
+    dAmatdr.DelMat();
     Ainv.DelMat();
     A.DelMat();
     dqlocdr.DelMat();
@@ -376,7 +376,7 @@ int EEQModel::get_damat_0d(
   const TMatrix<double> &dist,
   const TVector<double> &q,
   const TMatrix<double> &Amat,
-  TMatrix<double> &dAmat,
+  TMatrix<double> &dAmatdr,
   TMatrix<double> &atrace,
   const TVector<double> &cn,
   const TMatrix<double> &dcndr,
@@ -421,12 +421,12 @@ int EEQModel::get_damat_0d(
       atrace(jj, 1) -= dgy * q(ii);
       atrace(jj, 2) -= dgz * q(ii);
 
-      dAmat(3 * ii,     jj) =  dgx * q(ii);
-      dAmat(3 * ii + 1, jj) =  dgy * q(ii);
-      dAmat(3 * ii + 2, jj) =  dgz * q(ii);
-      dAmat(3 * jj,     ii) = -dgx * q(jj);
-      dAmat(3 * jj + 1, ii) = -dgy * q(jj);
-      dAmat(3 * jj + 2, ii) = -dgz * q(jj);
+      dAmatdr(3 * ii,     jj) =  dgx * q(ii);
+      dAmatdr(3 * ii + 1, jj) =  dgy * q(ii);
+      dAmatdr(3 * ii + 2, jj) =  dgz * q(ii);
+      dAmatdr(3 * jj,     ii) = -dgx * q(jj);
+      dAmatdr(3 * jj + 1, ii) = -dgy * q(jj);
+      dAmatdr(3 * jj + 2, ii) = -dgz * q(jj);
     }
   }
 
@@ -575,7 +575,7 @@ int EEQBCModel::get_damat_0d(
   const TMatrix<double> &dist,
   const TVector<double> &q,
   const TMatrix<double> &Amat,
-  TMatrix<double> &dAmat,
+  TMatrix<double> &dAmatdr,
   TMatrix<double> &atrace,
   const TVector<double> &cn,
   const TMatrix<double> &dcndr,
@@ -615,12 +615,12 @@ int EEQBCModel::get_damat_0d(
       radj = rad[jzp] * (1.0 - kcnrad * cn(jj) * norm_cn);
       dradcn_j = - rad[jzp] * kcnrad * norm_cn;
       gam = 1.0 / (pow(radi,2) + pow(radj,2));
-      for (int c = 0; c < 3; c++) {
-        vec(c) = mol.CC(jj, c) - mol.CC(ii, c);
+      for (int k = 0, kk = 0; k < mol.NAtoms; k++) {
+        kk = realIdx(k);
+        if (kk < 0) continue;
         // Coulomb interaction of Gaussian charges
-        for (int k = 0, kk = 0; k < mol.NAtoms; k++) {
-          kk = realIdx(k);
-          if (kk < 0) continue;
+        for (int c = 0; c < 3; c++) {
+          vec(c) = mol.CC(jj, c) - mol.CC(ii, c);
           dgamdr(3*kk+c) =  -(radi * dradcn_i * dcndr(ii, 3*kk + c) + radj * dradcn_j * dcndr(jj, 3*kk + c)) * pow(gam, 3);
         }
       }
@@ -640,21 +640,21 @@ int EEQBCModel::get_damat_0d(
         dG(c) = dtmp1 * vec(c);
         atrace(ii, c) += -dG(c) * q(jj) * cmat(ii, jj);
         atrace(jj, c) += +dG(c) * q(ii) * cmat(jj, ii);
-        dAmat(3*ii+c, jj) += -dG(c) * q(ii) * cmat(jj, ii);
-        dAmat(3*jj+c, ii) += +dG(c) * q(jj) * cmat(ii, jj);
+        dAmatdr(3*ii+c, jj) += -dG(c) * q(ii) * cmat(jj, ii);
+        dAmatdr(3*jj+c, ii) += +dG(c) * q(jj) * cmat(ii, jj);
         // Effective charge width derivative
         atrace(ii, c) += -dtmp2 * q(jj) * dgamdr(3*jj+c) * cmat(ii, jj);
         atrace(jj, c) += -dtmp2 * q(ii) * dgamdr(3*ii+c) * cmat(jj, ii);
-        dAmat(3*ii+c, jj) += +dtmp2 * q(ii) * dgamdr(3*ii+c) * cmat(jj, ii);
-        dAmat(3*jj+c, ii) += +dtmp2 * q(jj) * dgamdr(3*jj+c) * cmat(ii, jj);
+        dAmatdr(3*ii+c, jj) += +dtmp2 * q(ii) * dgamdr(3*ii+c) * cmat(jj, ii);
+        dAmatdr(3*jj+c, ii) += +dtmp2 * q(jj) * dgamdr(3*jj+c) * cmat(ii, jj);
         // Capacitance derivative off-diagonal
         atrace(ii, c) += -dtmp3 * q(jj) * dcmatdr(3*jj+c, ii);
         atrace(jj, c) += -dtmp3 * q(ii) * dcmatdr(3*ii+c, jj);
-        dAmat(3*ii+c, jj) += +dtmp3 * q(ii) * dcmatdr(3*ii+c, jj);
-        dAmat(3*jj+c, ii) += +dtmp3 * q(jj) * dcmatdr(3*jj+c, ii);
+        dAmatdr(3*ii+c, jj) += +dtmp3 * q(ii) * dcmatdr(3*ii+c, jj);
+        dAmatdr(3*jj+c, ii) += +dtmp3 * q(jj) * dcmatdr(3*jj+c, ii);
         // Capacitance derivative diagonal
-        dAmat(3*jj+c, ii) += -dtmp4 * dcmatdr(3*jj+c, ii);
-        dAmat(3*ii+c, jj) += -dtmp5 * dcmatdr(3*ii+c, jj);
+        dAmatdr(3*jj+c, ii) += -dtmp4 * dcmatdr(3*jj+c, ii);
+        dAmatdr(3*ii+c, jj) += -dtmp5 * dcmatdr(3*ii+c, jj);
       }
     }  // jj
       dtmp1 = kqeta[izp] * q(ii) * cmat(ii, ii);  // Hardness
@@ -664,15 +664,15 @@ int EEQBCModel::get_damat_0d(
         if (kk < 0) continue;
         for (int c = 0; c < 3; c++) {
           // Hardness derivative
-          dAmat(3*kk+c, ii) += +dtmp1 * dqlocdr(ii, 3*kk+c);
+          dAmatdr(3*kk+c, ii) += +dtmp1 * dqlocdr(ii, 3*kk+c);
           // Effective charge width derivative
-          dAmat(3*kk+c, ii) += +dtmp2 * dcndr(ii, 3*kk+c);
+          dAmatdr(3*kk+c, ii) += +dtmp2 * dcndr(ii, 3*kk+c);
         }
       }
       // Capacitance derivative
       dtmp3 = (eta[izp] + kqeta[izp] * qloc(ii) + sqrt2pi / radi) * q(ii);
       for (int c = 0; c < 3; c++) {
-        dAmat(3*ii+c, ii) += +dtmp3 * dcmatdr(3*ii+c, ii); 
+        dAmatdr(3*ii+c, ii) += +dtmp3 * dcmatdr(3*ii+c, ii); 
       }
 }  // ii
 
@@ -687,7 +687,7 @@ int EEQBCModel::get_qloc(
   const TMatrix<double> &dist,
   const double q_tot,  // total system charge
   TVector<double> &qloc,  // Local charge
-  TMatrix<double>& dqlocdr,  // Derivative of local charge w.r.t. atom positions
+  TMatrix<double> &dqlocdr,  // Derivative of local charge w.r.t. atom positions
   bool lgrad
 ) 
 {
@@ -760,28 +760,17 @@ int EEQBCModel::get_cpair(
 
 // Get derivative of the capacitance for bond between atoms i and j for EEQ-BC 
 int EEQBCModel::get_dcpair(
-  int iat,  // atom type of i
-  int jat,  // atom type of j
+  double dist_ij,  // distance between atom j to atom i
+  double rvdw_ijat,  // pairwise van der Waals radii for ij atom types
+  double cap_ij,  // product of bond capacitances for atom types of i and j
   TVector<double> &vec, // Vector from j to i
-  double &dist_ij,  // distance between atom j to atom i
   TVector<double> &dcdr_ij  // Out: Capacitance for bond ij
 ) const {
-  //  r1 = norm2(vec)
-  //  ! Capacitance of bond between atom i and j
-  int iat_zero = iat;  // convert to index counting from zero (e.g. H=0)
-  int jat_zero = jat;  // convert to index counting from zero (e.g. H=0)
-  int ij_at;
-  if (iat_zero > jat_zero) {
-    ij_at = (jat_zero + iat_zero*(iat_zero - 1)/2) - 1;
-  } else {
-    ij_at = (iat_zero + jat_zero*(jat_zero - 1)/2) - 1;
-  }
   // Calculate the argument of the error function
   //     arg = -(kbc * (r1      - rvdw       ) / rvdw)**2
-  double arg =   kbc * (dist_ij - rvdw[ij_at]) / rvdw[ij_at];
-  //  dtmp = sqrt(capi * capj) * kbc * exp(arg) / (sqrtpi * rvdw)
-  //  dgpair = dtmp * vec / r1
-  double dtmp = sqrt(cap[iat]*cap[jat]) * kbc * exp( - pow(arg, 2)) / (sqrt(pi) * rvdw[ij_at]);
+  double arg =   kbc * (dist_ij - rvdw_ijat) / rvdw_ijat;
+  //     dtmp = sqrt(capi * capj) * kbc * exp(arg) / (sqrtpi * rvdw)
+  double dtmp = sqrt(cap_ij) * kbc * exp( - pow(arg, 2)) / (sqrt(pi) * rvdw_ijat);
   for (int c = 0; c < 3; c++) {
     dcdr_ij(c) = dtmp * vec(c) / dist_ij;
   }
@@ -835,8 +824,12 @@ int EEQBCModel::get_dcmatdr(
 ) {
   int iat;  // atom type of i
   int jat;  // atom type of j
+  int ij_min, ij_max; // min and max from i and j
+  int ij_at;  // pairwise index for atom types of i and j
   double c_ij;  // Capacitance for bond between atoms i and j
   double dist_ij; // distance between atoms i and j
+  double rvdw_ijat;  // pairwise van der Waals radii for ij atom types
+  double cap_ij;  // product of bond capacitances for atom types of i and j
   TVector<double> vec; // Vector from i to j
   vec.NewVec(3);
   TVector<double> dcdr_ij; // Part ij of capacitance derivative
@@ -857,7 +850,12 @@ int EEQBCModel::get_dcmatdr(
         vec(c) = mol.CC(jj, c) - mol.CC(ii, c);
       }
       dist_ij = dist(ii,jj);
-      get_dcpair(iat, jat, vec, dist_ij, dcdr_ij);
+      ij_min = std::min(iat, jat);
+      ij_max = std::max(iat, jat);
+      ij_at = ij_min + ij_max * (ij_max - 1)/2 - 1;
+      rvdw_ijat = rvdw[ij_at];
+      cap_ij = cap[iat] * cap[jat];
+      get_dcpair( dist_ij, rvdw_ijat, cap_ij, vec, dcdr_ij);
       for (int c = 0; c < 3; c++) {
       // Calculate Off-diagonal elements; bond capacitances
       dcmatdr(3*ii+c,   jj) = - dcdr_ij(c);
@@ -894,6 +892,7 @@ int EEQBCModel::get_xvec(
 
   // get local charge
   info = get_qloc(mol, realIdx, dist, charge, qloc, dqlocdr, false);
+  if (info != EXIT_SUCCESS) return info;
 
   for (int i = 0, ii = 0; i < mol.NAtoms; i++)
   {
@@ -939,14 +938,14 @@ int EEQBCModel::get_xvec_derivs(
 ) {
   int info{0};
   const int n_atoms = realIdx.Max() + 1;
-  dxvecdr.NewMat(n_atoms, 3*n_atoms);
-  TVector<double> x_tmp;  // dummy for xvec, has dimension N+1 including the constraint
-  x_tmp.NewVector(n_atoms+1);
-  TMatrix<double> dxvecdr_tmp;
-  dxvecdr_tmp.NewMat(n_atoms, 3*n_atoms);
-  TMatrix<double> cmat_tmp;
-  cmat_tmp.NewMat(n_atoms, n_atoms);
   int i_atno;  // atomic number of atom i
+  TVector<double> x_tmp;  // dummy for xvec, has dimension N+1 including the constraint
+  TMatrix<double> dxvecdr_tmp;
+  TMatrix<double> cmat_tmp;
+  x_tmp.NewVector(n_atoms+1);
+  dxvecdr_tmp.NewMat(n_atoms, 3*n_atoms);
+  cmat_tmp.NewMat(n_atoms, n_atoms);
+  dxvecdr.NewMat(n_atoms, 3*n_atoms);
 
   // calculate derivative of the capacitance
   info = get_dcmatdr(mol, realIdx, dist, dcmatdr);
@@ -1021,59 +1020,6 @@ int EEQBCModel::get_xvec_derivs(
   }
 
   return EXIT_SUCCESS; 
-}
-
-
-// numerical gradient of partial charges w.r.t. atom positions
-int EEQBCModel::num_grad_dqdr(
-  TMolecule &mol,  // molecular geometry
-  const TIVector &realIdx,  // The real atom indices (for excluding dummy atoms)
-  int charge, // total charge of the system
-  TMatrix<double> &num_dqdr // numerical gradient
-) {
-  TVector<double> q_r, q_l;  // forward and backward point
-  double step{1.0e-6};  // step size of finite differences
-  const int nat = realIdx.Max() +1;  // number of atoms
-  TVector<double> cn;  // coordination number
-  TMatrix<double> dcndr;  // derivative of the coordination number
-  TMatrix<double> dqdr;  // dummy variable for analytical derivative
-  dqdr.NewMat(3 * nat, nat);
-  num_dqdr.NewMat(3 * nat, nat);
-  TMatrix<double> dist;  // matrix with pairwise atomic distances
-  multicharge::EEQBCModel eeqbc_model;  // instance of the EEQ-BC model
-
-  // calculate numerical gradient via finite difference method
-  for (int i = 0, ii = 0; i < mol.NAtoms; i++) {
-    ii = realIdx(i);
-    if (ii < 0) continue;
-    for (int c = 0; c < 3; c++) {
-      // calculate forward point
-      mol.CC(ii, c) += step;
-      dist.NewMatrix(nat, nat);
-      dftd4::calc_distances(mol, realIdx, dist);
-      eeqbc_model.get_cn(mol, realIdx, dist, cn, dcndr, false);
-      q_r.NewVec(nat);
-      eeqbc_model.eeq_chrgeq(mol, realIdx, dist, cn, dcndr, charge, q_r, dqdr, false, false);
-
-      // calculate backward point
-      mol.CC(ii, c) = mol.CC(ii, c) - 2 * step;
-      dist.NewMatrix(nat, nat);
-      dftd4::calc_distances(mol, realIdx, dist);
-      eeqbc_model.get_cn(mol, realIdx, dist, cn, dcndr, false);
-      q_l.NewVec(nat);
-      eeqbc_model.eeq_chrgeq(mol, realIdx, dist, cn, dcndr, charge, q_l, dqdr, false, false);
-
-      // calculate numerical gradient as finite difference
-      mol.CC(ii, c) = mol.CC(ii, c) + step;
-      for (int j = 0, jj = 0; j < mol.NAtoms; j++) {
-        jj = realIdx(j);
-        if (jj < 0) continue;
-        num_dqdr(3 * ii + c, jj) = 0.5 * (q_r(jj) - q_l(jj)) / step;
-
-      }
-    }
-  }
-  return EXIT_SUCCESS;
 }
 
 } // namespace multicharge
