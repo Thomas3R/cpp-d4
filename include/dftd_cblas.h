@@ -1,13 +1,16 @@
 /*
  * This file contains code adapted from the ORCA quantum chemistry program.
- * ORCA is developed by the group of Prof. Frank Neese at the Max-Planck-Institut für Kohlenforschung,
- * Mülheim an der Ruhr and FAccTs GmbH. ORCA is licensed by the Max-Planck-Institut für Kohlenforschung and FAccTs GmbH.
+ * ORCA is developed by the group of Prof. Frank Neese at the
+ * Max-Planck-Institut für Kohlenforschung, Mülheim an der Ruhr and FAccTs GmbH.
+ * ORCA is licensed by the Max-Planck-Institut für Kohlenforschung and FAccTs
+ * GmbH.
  *
- * The inclusion of ORCA code in this file has been done with the explicit permission
- * of the ORCA developers.
+ * The inclusion of ORCA code in this file has been done with the explicit
+ * permission of the ORCA developers.
  *
- * For reuse or licensing of this code, please contact the ORCA team at the Max-Planck-Institut
- * für Kohlenforschung (https://orcaforum.kofo.mpg.de/) or FAccTs GmbH (https://www.faccts.de/).
+ * For reuse or licensing of this code, please contact the ORCA team at the
+ * Max-Planck-Institut für Kohlenforschung (https://orcaforum.kofo.mpg.de/) or
+ * FAccTs GmbH (https://www.faccts.de/).
  */
 #pragma once
 
@@ -35,8 +38,8 @@ inline int BLAS_Add_Mat_x_Vec(
   bool Transpose,
   double alpha
 ) {
-    if (Transpose) {
-      if (A.cols == C.N && A.rows == V.N) {
+  if (Transpose) {
+    if (A.cols == C.N && A.rows == V.N) {
       cblas_dgemv(
         CblasRowMajor,
         CblasTrans,
@@ -54,7 +57,7 @@ inline int BLAS_Add_Mat_x_Vec(
       return EXIT_SUCCESS;
     };
   } else {
-      if (A.rows == C.N && A.cols == V.N) {
+    if (A.rows == C.N && A.cols == V.N) {
       cblas_dgemv(
         CblasRowMajor,
         CblasNoTrans,
@@ -74,7 +77,7 @@ inline int BLAS_Add_Mat_x_Vec(
   };
 
   return EXIT_FAILURE;
-};
+}
 
 /**
  * @brief General matrix-matrix multiplication (`C = alpha * A * B + C`).
@@ -97,8 +100,9 @@ inline int BLAS_Add_Mat_x_Mat(
 ) {
   // check for size 0 matrices
   if (A.cols == 0 || A.rows == 0 || B.cols == 0 || B.rows == 0 || C.cols == 0 ||
-      C.rows == 0)
+      C.rows == 0) {
     exit(EXIT_FAILURE);
+  };
 
   // check for transpositions
   if (!TransposeA) {
@@ -197,7 +201,7 @@ inline int BLAS_Add_Mat_x_Mat(
     }; // B transposed
   };
   return EXIT_SUCCESS;
-};
+}
 
 /**
  * @brief Compute inverse of a matrix using LU decomposition.
@@ -220,9 +224,9 @@ inline int BLAS_InvertMatrix(TMatrix<double> &a) {
     (lapack_int)a.cols,
     ipiv
   );
-  if (info != 0) { 
+  if (info != 0) {
     delete[] ipiv;
-    return EXIT_FAILURE; 
+    return EXIT_FAILURE;
   }
 
   // Inverse of an LU-factored general matrix
@@ -234,6 +238,52 @@ inline int BLAS_InvertMatrix(TMatrix<double> &a) {
   if (info != 0) { return EXIT_FAILURE; }
 
   return EXIT_SUCCESS;
-};
+}
+
+/**
+ * @brief Solve a symmetric linear system A * X = B for X.
+ *
+ * This routine factorizes a symmetric matrix A using Bunch-Kaufman
+ * factorization and solves for the right-hand side vector B. The matrix A is
+ * overwritten by its factorization. The solution overwrites B.
+ *
+ * @param A Symmetric matrix of size (m x m). Overwritten by the factorization.
+ * @param B Right-hand side vector of size m. Overwritten by the solution.
+ * @return int Returns EXIT_SUCCESS (0) on success, EXIT_FAILURE (1) on error.
+ */
+inline int BLAS_SolveSymmetric(
+  TMatrix<double> &A, // symmetric matrix
+  TVector<double> &B  // RHS vector (becomes solution)
+) {
+  const lapack_int m = A.rows;
+  const lapack_int nrhs = 1;
+
+  if (A.cols != m || B.N != m) {
+    fprintf(stderr, "BLAS_SolveSymmetric error: dimension mismatch\n");
+    return EXIT_FAILURE;
+  }
+
+  lapack_int info;
+  lapack_int *ipiv = new lapack_int[A.rows];
+
+  // Factorization
+  info = LAPACKE_dsytrf(LAPACK_ROW_MAJOR, 'L', m, A.p, m, ipiv);
+  if (info != 0) {
+    delete[] ipiv;
+    fprintf(stderr, "dsytrf failed: info=%d\n", (int)info);
+    return EXIT_FAILURE;
+  }
+
+  // Solve for all RHS columns
+  info =
+    LAPACKE_dsytrs(LAPACK_ROW_MAJOR, 'L', m, nrhs, A.p, m, ipiv, B.p, nrhs);
+  delete[] ipiv;
+
+  if (info != 0) {
+    fprintf(stderr, "dsytrs failed: info=%d\n", (int)info);
+    return EXIT_FAILURE;
+  }
+  return EXIT_SUCCESS;
+}
 
 } // namespace dftd4
